@@ -28,9 +28,9 @@
                         <div class="mb-3">
                             <label class="form-label">Image</label>
                             <input type="file" name="image" class="form-control" id="image">
-                            <div id="preview" class="mt-2"></div>
+                            <div id="preview" class="mt-4"></div>
                         </div>
-                        <button type="submit" class="btn btn-success w-100" id="submitBtn">Save User</button>
+                        <button type="submit" class="btn btn-primary w-100" id="submitBtn">Save User</button>
                     </form>
                 </div>
             </div>
@@ -38,7 +38,7 @@
         <!-- Table -->
         <div class="col-lg-7">
             <div class="card shadow-sm border-0">
-                <div class="card-header bg-dark text-white">
+                <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">User List</h5>
                 </div>
                 <div class="card-body p-0">
@@ -68,20 +68,17 @@ $(document).ready(function() {
         const formData = new FormData(this);
         const id = $('#userId').val();
         const url = id ? `/users/${id}` : "{{ route('users.store') }}";
-
-        // 🟡 Use _method=PUT for Laravel update logic
         if (id) {
             formData.append('_method', 'PUT');
         }
 
-        // Remove image field if no file selected to avoid 422 error
         if (!$('#image')[0].files.length) {
             formData.delete('image');
         }
 
         $.ajax({
             url: url,
-            method: 'POST', // always POST when using FormData
+            method: 'POST', 
             data: formData,
             contentType: false,
             processData: false,
@@ -112,24 +109,33 @@ $(document).ready(function() {
     });
 
     // Fetch and populate user list
-    function fetchUsers() {
-        $.get("{{ route('users.index') }}", function(data) {
-            $('#userTable').html('');
-            data.forEach(user => {
-                $('#userTable').append(`
-                    <tr>
-                        <td>${user.name}</td>
-                        <td>${user.email}</td>
-                        <td>${user.image ? `<img src="/storage/${user.image}" width="50" class="rounded-circle">` : 'No Image'}</td>
+function fetchUsers() {
+    $.get("{{ route('users.index') }}", function(data) {
+        $('#userTable').html('');
+        data.forEach(user => {
+            $('#userTable').append(`
+                <tr>
+                    <td class="text-center mx-auto p-2">${user.name}</td>
+                    <td class="text-center mx-auto p-2">${user.email}</td>
                         <td>
-                            <button class="btn btn-sm btn-warning me-1" onclick="editUser(${user.id})">Edit</button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})">Delete</button>
+                        ${user.image 
+                            ? `<img src="/storage/${user.image}" class="zoom-hover-img" alt="User Image">` 
+                            : 'No Image'}
                         </td>
-                    </tr>
-                `);
-            });
+
+                       <td class="action-buttons">
+                        <button class="btn btn-sm btn-warning me-1 escape-button" onclick="editUser(${user.id})" title="Edit">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger escape-button" onclick="deleteUser(${user.id})" title="Delete">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `);
         });
-    }
+    });
+}
 
     // Make fetchUsers globally available
     window.fetchUsers = fetchUsers;
@@ -159,7 +165,6 @@ function editUser(id) {
 
 // Delete a user
 function deleteUser(id) {
-    if (confirm('Are you sure?')) {
         $.ajax({
             url: `/users/${id}`,
             method: 'DELETE',
@@ -174,7 +179,40 @@ function deleteUser(id) {
             }
         });
     }
-}
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const container = document.querySelector('#userTable');
+
+    container.addEventListener('mousemove', function (e) {
+        const buttons = container.querySelectorAll('.escape-button');
+
+        buttons.forEach(button => {
+            const rect = button.getBoundingClientRect();
+            const mouseX = e.clientX;
+            const mouseY = e.clientY;
+
+            const offsetX = rect.left + rect.width / 2;
+            const offsetY = rect.top + rect.height / 2;
+
+            const dx = mouseX - offsetX;
+            const dy = mouseY - offsetY;
+
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // If mouse is too close (e.g., within 80px), move the button away
+            if (distance < 80) {
+                const moveX = (dx / distance) * -40;
+                const moveY = (dy / distance) * -40;
+
+                button.style.transform = `translate(${moveX}px, ${moveY}px)`;
+            } else {
+                // Reset if not hovering
+                button.style.transform = '';
+            }
+        });
+    });
+});
 </script>
 
 @endsection
